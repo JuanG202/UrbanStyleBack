@@ -8,7 +8,7 @@ const productRoutes = require("./routes/productRoutes");
 
 const app = express();
 
-// CORS configurado
+// CORS
 app.use(cors({
   origin: [
     "http://localhost:5173",
@@ -27,24 +27,38 @@ if (process.env.UPLOAD_PATH) {
   app.use("/uploads", express.static(process.env.UPLOAD_PATH));
 }
 
-// conexión MongoDB
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB conectado"))
-.catch(err => console.log(err));
+// conexión Mongo optimizada para Vercel
+let cached = global.mongoose;
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
+async function connectDB() {
+  if (cached.conn) return cached.conn;
+
+  if (!cached.promise) {
+    cached.promise = mongoose.connect(process.env.MONGO_URI, {
+      bufferCommands: false
+    }).then((mongoose) => mongoose);
+  }
+
+  cached.conn = await cached.promise;
+  return cached.conn;
+}
+
+connectDB();
 
 // rutas
 app.use("/api/products", productRoutes);
 
-// solo levantar servidor en local
+// servidor local
 if (require.main === module) {
-
   const PORT = process.env.PORT || 3000;
 
   app.listen(PORT, () => {
     console.log(`Servidor corriendo en puerto ${PORT}`);
   });
-
 }
 
-// exportar app para Vercel
 module.exports = app;
