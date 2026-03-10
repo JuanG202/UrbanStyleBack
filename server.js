@@ -8,6 +8,7 @@ const productRoutes = require("./routes/productRoutes");
 
 const app = express();
 
+// CORS
 app.use(cors({
   origin: [
     "http://localhost:5173",
@@ -17,7 +18,9 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json());
+// AUMENTAR LIMITE DEL BODY (evita PayloadTooLargeError)
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 // carpeta de imágenes
 if (process.env.UPLOAD_PATH) {
@@ -26,8 +29,13 @@ if (process.env.UPLOAD_PATH) {
 
 // conexión MongoDB
 mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log("MongoDB conectado"))
-.catch(err => console.log(err));
+  .then(() => console.log("MongoDB conectado"))
+  .catch(err => console.log(err));
+
+// ruta de prueba
+app.get("/api", (req, res) => {
+  res.json({ message: "API Urban Style funcionando" });
+});
 
 // rutas
 app.use("/api/products", productRoutes);
